@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GAN Image-to-Image Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; margin-top: 50px; }
+        .container { display: flex; gap: 20px; }
+        .image-box { border: 1px solid #ccc; padding: 10px; text-align: center; }
+        img { max-width: 300px; height: auto; border: 1px solid #eee; }
+        #loading { display: none; color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Celebrity Face Generator (WGAN-GP)</h1>
+    
+    <input type="file" id="imageUpload" accept="image/*">
+    <button onclick="uploadAndGenerate()">Generate Face</button>
+    <p id="loading">Processing image... Please wait.</p>
+
+    <div class="container">
+        <div class="image-box">
+            <h2>Input Image</h2>
+            <img id="inputImageDisplay" src="" alt="Input Image Placeholder">
+        </div>
+        <div class="image-box">
+            <h2>Generated Output</h2>
+            <img id="generatedImageDisplay" src="" alt="Generated Image Placeholder">
+        </div>
+    </div>
+
+    <script>
+        const imageUpload = document.getElementById('imageUpload');
+        const inputImageDisplay = document.getElementById('inputImageDisplay');
+        const generatedImageDisplay = document.getElementById('generatedImageDisplay');
+        const loadingMessage = document.getElementById('loading');
+
+        // Display input image preview
+        imageUpload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    inputImageDisplay.src = e.target.result;
+                    generatedImageDisplay.src = ''; // Clear previous output
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        async function uploadAndGenerate() {
+            const file = imageUpload.files[0];
+            if (!file) {
+                alert("Please select an image file first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            loadingMessage.style.display = 'block';
+            generatedImageDisplay.src = '';
+
+            try {
+                // Send the image to the Flask backend
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    generatedImageDisplay.src = data.generated_image;
+                } else {
+                    alert('Generation Failed: ' + data.error);
+                }
+
+            } catch (error) {
+                console.error('Error during fetch:', error);
+                alert('An error occurred while connecting to the server.');
+            } finally {
+                loadingMessage.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
